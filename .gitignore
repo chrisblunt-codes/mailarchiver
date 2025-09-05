@@ -1,0 +1,23 @@
+# Crystal build artifacts
+/.shards/
+/lib/
+/docs/
+/.crystal/
+/.crystal-version
+
+# Compiled binaries
+/*.dwarf
+/*.dSYM
+/*.exe
+/*.dll
+/*.so
+/*.dylib
+/*.a
+/*.o
+/bin/*
+/pop3client*
+
+# Editors
+*.swp
+*~
+.vscode/
