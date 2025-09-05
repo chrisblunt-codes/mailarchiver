@@ -5,8 +5,7 @@ require "option_parser"
 
 require "./mailarchiver/*"
 
-
-module Mailarchiver
+module MailArchiver
   VERSION = "0.1.0"
 
   module CLI
@@ -16,6 +15,7 @@ module Mailarchiver
       case command
       when "init"         then handle_init
       when "add-account"  then handle_add_account
+      when "fetch"        then handle_fetch
       when nil            then usage("no command")
       else                    
         usage("unknown command: #{command}")
@@ -73,6 +73,17 @@ module Mailarchiver
       end
     end
 
+    def self.handle_fetch
+      name = "default"
+
+      OptionParser.parse(ARGV) do |p|
+        p.on("--name=NAME", "Account Name")   { |v| name = v }
+      end
+
+      Fetcher.new(account_name: name).run
+      puts "Fetch complete."
+    end
+
     def self.usage(msg : String)
       STDERR.puts msg
       STDERR.puts "Usage: mailarchiver <init|add-account|fetch|search|show|attachments>"
@@ -81,4 +92,4 @@ module Mailarchiver
   end
 end
 
-Mailarchiver::CLI.run
+MailArchiver::CLI.run

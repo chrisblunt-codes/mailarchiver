@@ -4,7 +4,7 @@
 require "db"
 require "sqlite3"
 
-module Mailarchiver
+module MailArchiver
   module DBA
     @@db : DB::Database?
 
