@@ -40,10 +40,17 @@ module MailArchiver
     def run
       puts "Fetching... #{@account_name}"
 
+      account : Account
+
       begin
         account = find_account
-      rescue e : AccountNotFound
-        puts "Account not found: #{@account_name}"
+        fetch_mail(account) do |message|
+        end
+      rescue ex : AccountNotFound
+        puts "Error: Account not found: #{@account_name}"
+        exit 65 # EX_DATAERR
+      rescue ex : Pop3Client::NotConnectedError
+        puts "Error: POP3 client not connected"
         exit 1
       end
     end
@@ -60,6 +67,25 @@ module MailArchiver
       rescue e : DB::NoResultsError
         raise AccountNotFound.new
       end
+    end
+    
+    private def fetch_mail(account : Account, &block)
+      client = Pop3Client::Client.new(account.host, account.port)
+      client.connect
+      client.login(account.username, account.password_enc)
+
+      client.uidl.each_with_index do |message_id, idx|
+        msg_num = idx + 1
+        yield client.retr(msg_num)
+
+        if account.delete_after_fetch
+          client.dele(msg_num)
+        end
+      end
+
+      client.quit
+    ensure
+      client.close if client
     end
   end
 end
