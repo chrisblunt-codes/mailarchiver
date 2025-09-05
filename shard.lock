@@ -1,0 +1,14 @@
+version: 2.0
+shards:
+  db:
+    git: https://github.com/crystal-lang/crystal-db.git
+    version: 0.13.1
+
+  pop3client:
+    git: https://github.com/chrisblunt-codes/pop3client.git
+    version: 0.2.1
+
+  sqlite3:
+    git: https://github.com/crystal-lang/crystal-sqlite3.git
+    version: 0.21.0
+

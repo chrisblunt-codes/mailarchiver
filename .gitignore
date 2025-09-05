@@ -21,3 +21,7 @@
 *.swp
 *~
 .vscode/
+
+# Default Paths
+/archive
+/data

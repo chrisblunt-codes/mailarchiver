@@ -6,7 +6,7 @@ authors:
 
 homepage: https://chrisblunt.codes
 
-description: A lightweight mail archiver: fetch via POP3, store as .eml, index headers for search.
+description: A lightweight mail archiver. Fetch via POP3, store as .eml, index headers for search.
 
 license: Apache-2.0
 repository: https://github.com/chrisblunt-codes/mailarchiver
@@ -16,9 +16,13 @@ targets:
   pop3client:
     main: src/mailarchiver.cr
 
-development_dependencies:
-  spec:
-    github: crystal-lang/crystal-spec
+dependencies:
+  pop3client:
+    github: chrisblunt-codes/pop3client
+  db:
+    github: crystal-lang/crystal-db
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
 
 documentation: https://chrisblunt-codes.github.io/mailarchiver
 
