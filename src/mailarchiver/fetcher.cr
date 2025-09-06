@@ -1,0 +1,119 @@
+# Copyright 2025 Chris Blunt
+# Licensed under the Apache License, Version 2.0
+
+require "pop3client"
+
+require "./db"
+require "./errors"
+require "./models/account"
+require "./models/message"
+
+module MailArchiver
+  class Fetcher
+    def initialize(@account_name : String)
+    end
+
+    def run
+      puts "Fetching... #{@account_name}"
+
+      account : Account
+
+      begin
+        account = find_account
+        fetch_mail(account) do |uid, message|
+          puts "Fetched: #{uid}"
+
+          spooled = false
+          
+          if Message.exists?(account.id, uid)
+            puts "Message already in DB"
+            spooled = true
+          end
+          
+          begin
+            sha, bytes, rel = Message.write_to_spool(message)
+            Message.insert_stub(account.id, uid, sha, bytes, rel)
+            spooled = true
+          rescue ex : SpoolingError
+            puts "Error: #{ex.message}"
+          end
+
+          spooled
+        end
+      rescue ex : AccountNotFound
+        puts "Error: Account not found: #{@account_name}"
+        exit 65 # EX_DATAERR
+      rescue ex : Pop3Client::ConnectionError
+        puts "Error: #{ex.message}"
+        exit 1
+      rescue ex : Pop3Client::NotConnectedError
+        puts "Error: POP3 client not connected"
+        exit 1
+      rescue ex : Pop3Client::ProtocolError
+        puts "Error: #{ex.message}"
+        exit 1
+      end
+    end
+
+    private def find_account : Account
+      begin
+        sql = %q{
+          SELECT
+            id,
+            name,
+            host,
+            port,
+            username,
+            password_cipher,
+            password_iv,
+            password_tag,
+            key_version,
+            use_tls,
+            delete_after_fetch
+          FROM accounts
+          WHERE name = ?
+        }
+
+        row = DBA.db.query_one sql, @account_name,
+          as: { Int64, String, String, Int32, String, Bytes, Bytes, Bytes, Int32, Int32, Int32 }
+
+        Account.new(*row)
+      rescue e : DB::NoResultsError
+        raise AccountNotFound.new
+      end
+    end
+
+    private def fetch_mail(account : Account, &block : String, String -> Bool)
+      client : Pop3Client::Client? = nil
+
+      begin
+        client = Pop3Client::Client.new(account.host, account.port)
+        client.connect
+        client.login(account.username, account.password)
+
+        client.uidl.each do |line|
+          parts = line.split(" ", 2)
+          next unless parts.size == 2
+
+          idx, uid = parts
+          msg_num  = idx.to_i?
+          next unless msg_num
+
+          message = client.retr(msg_num.to_i)
+          success = yield uid, message
+
+          puts "Deleting: #{msg_num}"
+          if success && account.delete_after_fetch
+            client.dele(msg_num.to_i)
+          end
+        end
+        client.quit
+      rescue e
+        client.try &.rset
+        raise e
+      ensure
+        client.try &.close
+      end
+    end
+  end
+end

@@ -1,12 +1,14 @@
 # Copyright 2025 Chris Blunt
 # Licensed under the Apache License, Version 2.0
 
+require "dotenv"
 require "option_parser"
 
 require "./mailarchiver/*"
 
+Dotenv.load
 
-module Mailarchiver
+module MailArchiver
   VERSION = "0.1.0"
 
   module CLI
@@ -16,6 +18,7 @@ module Mailarchiver
       case command
       when "init"         then handle_init
       when "add-account"  then handle_add_account
+      when "fetch"        then handle_fetch
       when nil            then usage("no command")
       else                    
         usage("unknown command: #{command}")
@@ -60,17 +63,29 @@ module Mailarchiver
         exit 65 # EX_DATAERR
       end
 
+      encrypted = Secrets.encrypt(password.not_nil!)
+
       begin
         res = DBA.db.exec %q(
-                INSERT INTO accounts(name, host, port, username, password_enc, use_tls, delete_after_fetch)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-              ), name, host, port, user, password, (tls ? 1 : 0), (dele ? 1 : 0)
-
-        id = res.last_insert_id
+                INSERT INTO accounts(name, host, port, username, password_cipher, password_iv, password_tag, use_tls, delete_after_fetch)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ), name, host, port, user, encrypted[:cipher], encrypted[:iv], encrypted[:tag], (tls ? 1 : 0), (dele ? 1 : 0)
+       id = res.last_insert_id
         puts "Account added (id=#{id})"
       rescue e : SQLite3::Exception 
         puts "Error: #{e.message}"
       end
+    end
+
+    def self.handle_fetch
+      name = "default"
+
+      OptionParser.parse(ARGV) do |p|
+        p.on("--name=NAME", "Account Name")   { |v| name = v }
+      end
+
+      Fetcher.new(account_name: name).run
+      puts "Fetch complete."
     end
 
     def self.usage(msg : String)
@@ -81,4 +96,4 @@ module Mailarchiver
   end
 end
 
-Mailarchiver::CLI.run
+MailArchiver::CLI.run
