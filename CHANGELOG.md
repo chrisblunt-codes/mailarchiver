@@ -6,7 +6,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
-- (nothing yet)
+- **CLI Fetcher**  
+  - Added `fetch` command with UIDL-based pipeline  
+  - Supports conditional `DELE` only after successful spool + DB insert  
+  - Introduced `Message.exists?` and `Message.insert_stub` helpers  
+  - Implemented atomic spool write (`.part` → rename) to `spool/incoming/`
+
 
 ### Changed
 - (nothing yet)
