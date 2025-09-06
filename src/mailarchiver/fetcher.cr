@@ -6,6 +6,7 @@ require "pop3client"
 require "./db"
 require "./errors"
 require "./models/account"
+require "./models/message"
 
 module MailArchiver
   class Fetcher
@@ -21,6 +22,23 @@ module MailArchiver
         account = find_account
         fetch_mail(account) do |uid, message|
           puts "Fetched: #{uid}"
+
+          spooled = false
+          
+          if Message.exists?(account.id, uid)
+            puts "Message already in DB"
+            spooled = true
+          end
+          
+          begin
+            sha, bytes, rel = Message.write_to_spool(message)
+            Message.insert_stub(account.id, uid, sha, bytes, rel)
+            spooled = true
+          rescue ex : SpoolingError
+            puts "Error: #{ex.message}"
+          end
+
+          spooled
         end
       rescue ex : AccountNotFound
         puts "Error: Account not found: #{@account_name}"
@@ -65,24 +83,37 @@ module MailArchiver
       end
     end
 
-    private def fetch_mail(account : Account, &block)
-      client = Pop3Client::Client.new(account.host, account.port)
-      client.connect
-      client.login(account.username, account.password)
+    private def fetch_mail(account : Account, &block : String, String -> Bool)
+      client : Pop3Client::Client? = nil
 
-      client.uidl.each_with_index do |message_id, idx|
-        msg_num = idx + 1
-        message = client.retr(msg_num)
-        yield message_id, message
+      begin
+        client = Pop3Client::Client.new(account.host, account.port)
+        client.connect
+        client.login(account.username, account.password)
 
-        if account.delete_after_fetch
-          client.dele(msg_num)
+        client.uidl.each do |line|
+          parts = line.split(" ", 2)
+          next unless parts.size == 2
+
+          idx, uid = parts
+          msg_num  = idx.to_i?
+          next unless msg_num
+
+          message = client.retr(msg_num.to_i)
+          success = yield uid, message
+
+          puts "Deleting: #{msg_num}"
+          if success && account.delete_after_fetch
+            client.dele(msg_num.to_i)
+          end
         end
+        client.quit
+      rescue e
+        client.try &.rset
+        raise e
+      ensure
+        client.try &.close
       end
-
-      client.quit
-    ensure
-      client.close if client
     end
   end
 end
