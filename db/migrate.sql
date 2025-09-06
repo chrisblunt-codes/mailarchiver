@@ -60,6 +60,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_path         ON messages(path);
 CREATE INDEX IF NOT EXISTS idx_messages_received_at         ON messages(received_at);
 CREATE INDEX IF NOT EXISTS idx_messages_account_id          ON messages(account_id);
 CREATE INDEX IF NOT EXISTS idx_messages_acct_received       ON messages(account_id, received_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_account_uidl ON messages(account_id, uidl);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_sha256       ON messages(sha256);
 
 -- ----------------------------------------------------------------------------------------------------
 -- FTS5 (external-content): headers only (subject/from/to/cc/message_id)
