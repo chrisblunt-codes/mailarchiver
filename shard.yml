@@ -17,6 +17,8 @@ targets:
     main: src/mailarchiver.cr
 
 dependencies:
+  dotenv:
+    github: gdotdesign/cr-dotenv
   pop3client:
     github: chrisblunt-codes/pop3client
   db:

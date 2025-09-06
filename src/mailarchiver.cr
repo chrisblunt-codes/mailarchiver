@@ -1,9 +1,12 @@
 # Copyright 2025 Chris Blunt
 # Licensed under the Apache License, Version 2.0
 
+require "dotenv"
 require "option_parser"
 
 require "./mailarchiver/*"
+
+Dotenv.load
 
 module MailArchiver
   VERSION = "0.1.0"
@@ -60,13 +63,14 @@ module MailArchiver
         exit 65 # EX_DATAERR
       end
 
+      encrypted = Secrets.encrypt(password.not_nil!)
+
       begin
         res = DBA.db.exec %q(
-                INSERT INTO accounts(name, host, port, username, password_enc, use_tls, delete_after_fetch)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-              ), name, host, port, user, password, (tls ? 1 : 0), (dele ? 1 : 0)
-
-        id = res.last_insert_id
+                INSERT INTO accounts(name, host, port, username, password_cipher, password_iv, password_tag, use_tls, delete_after_fetch)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ), name, host, port, user, encrypted[:cipher], encrypted[:iv], encrypted[:tag], (tls ? 1 : 0), (dele ? 1 : 0)
+       id = res.last_insert_id
         puts "Account added (id=#{id})"
       rescue e : SQLite3::Exception 
         puts "Error: #{e.message}"
