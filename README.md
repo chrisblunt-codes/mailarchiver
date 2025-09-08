@@ -25,9 +25,11 @@ TBC
   - Skip already imported messages gracefully  
   - Safe resume after crash
 
-- [ ] Search & reporting  
+- [x] Search & reporting  
   - Implement CLI search command using SQLite FTS5  
   - Show matches with basic metadata (date, from, subject)  
+
+- [ ] View messages
   - Option to open the raw `.eml`
 
 - [ ] Configuration & CLI improvements  
@@ -36,9 +38,7 @@ TBC
   - Exit codes aligned with UNIX conventions
 
 - [ ] Packaging & distribution  
-  - Shards release automation (version bump + tag)  
   - Prebuilt binaries (Linux/macOS/Windows)  
-  - Example systemd unit for scheduled fetching
 
 ### Future ideas
 - [ ] IMAP support (optional)  
