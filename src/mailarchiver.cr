@@ -1,6 +1,8 @@
 # Copyright 2025 Chris Blunt
 # Licensed under the Apache License, Version 2.0
 
+require "json"
+
 require "dotenv"
 require "option_parser"
 
@@ -20,6 +22,7 @@ module MailArchiver
       when "add-account"  then handle_add_account
       when "fetch"        then handle_fetch
       when "import"       then handle_import
+      when "search"       then handle_search
       when nil            then usage("no command")
       else                    
         usage("unknown command: #{command}")
@@ -94,10 +97,91 @@ module MailArchiver
       puts "Import complete."
     end
 
+    def self.handle_search
+      files   = false
+      limit   = 50
+      offset  = 0
+      since   : String? = nil
+      until_  : String? = nil
+      sort    = "rank"
+      json    = false
+
+      parser = OptionParser.parse(ARGV) do |p|
+        p.banner = "Usage: mailarchiver search [options] <query>"
+        p.on("--files", "--attachments", "Search attachment filenames") { files = true }
+        p.on("--limit N", "Limit (default 50)") { |v| limit = v.to_i }
+        p.on("--offset N", "Offset (default 0)") { |v| offset = v.to_i }
+        p.on("--since DATE", "Filter received_at >= DATE (YYYY-MM-DD)") { |v| since = v }
+        p.on("--until DATE", "Filter received_at <= DATE (YYYY-MM-DD)") { |v| until_ = v }
+        p.on("--sort SORT", "rank|date (default rank)") { |v| sort = v }
+        p.on("--json", "Output JSON") { json = true }
+        p.on("-h", "--help", "Show help") { puts p; exit 0 }
+      end
+
+      query = ARGV.join(" ").strip
+      if query.empty?
+        STDERR.puts "search: missing <query>\n\n#{parser}"
+        exit 2
+      end
+      
+      if files
+        search_files(query, limit, offset, json)
+      else
+        search_messages(query, limit, offset, since, until_, sort, json)
+      end
+    end
+
     def self.usage(msg : String)
       STDERR.puts msg
       STDERR.puts "Usage: mailarchiver <init|add-account|fetch|import|search|show|attachments>"
       exit 64 # EX_USAGE
+    end
+
+    # ---------------------------------------------------------------------
+    # Search commands
+    # ---------------------------------------------------------------------
+    
+    private def self.search_files(query : String, limit : Int32, offset : Int32, json : Bool)
+      hits = Searcher.search_attachments(query, limit, offset)
+
+      if json
+        puts hits.map { |h|
+          {
+            id: h.id, received_at: h.received_at, from_addr: h.from_addr,
+            subject: h.subject, filename: h.filename, rank: h.rank
+          }
+        }.to_json
+      else
+        hits.each do |h|
+          puts "#{h.received_at}  [#{h.id}]  #{h.from_addr}  #{h.subject}  (#{h.filename})"
+        end
+      end
+    end
+
+    private def self.search_messages(query : String, limit : Int32, offset : Int32, since : String?, until_ : String?, sort : String, json : Bool )
+      hits = Searcher.search(query, limit, offset)
+
+      # optional date filter
+      hits = hits.select { |h|
+        (since.nil?  || (h.received_at && h.received_at.not_nil! >= "#{since}")) &&
+        (until_.nil? || (h.received_at && h.received_at.not_nil! <= "#{until_}"))
+      }
+
+      hits =  case sort
+              when "date" then hits.sort_by { |h| h.received_at || "" }.reverse
+              else hits # already bm25 rank
+              end
+
+      if json
+        puts hits.map { |h|
+          { id: h.id, received_at: h.received_at, from_addr: h.from_addr,
+            subject: h.subject, rank: h.rank }
+        }.to_json
+      else
+        hits.each do |h|
+          puts "#{h.received_at}  [#{h.id}]  #{h.from_addr}  #{h.subject}"
+        end
+      end
     end
   end
 end
