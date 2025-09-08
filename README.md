@@ -38,7 +38,7 @@ TBC
   - Exit codes aligned with UNIX conventions
 
 - [ ] Packaging & distribution  
-  - Prebuilt binaries (Linux/macOS/Windows)  
+  - Prebuilt binaries (Linux/Windows)  
 
 ### Future ideas
 - [ ] IMAP support (optional)  
