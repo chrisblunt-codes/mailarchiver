@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS messages (
   id                    INTEGER PRIMARY KEY,
   account_id            INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   uidl                  TEXT NOT NULL,        -- POP3 UIDL
-  msg_num               INTEGER,              -- POP3 message number when fetched
   size_octets           INTEGER,
   received_at           TEXT,                 -- RFC822 Date parsed → ISO8601
   subject               TEXT,
@@ -107,15 +106,15 @@ CREATE TABLE IF NOT EXISTS attachments (
   message_id            INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   filename              TEXT,                   -- from Content-Disposition / Content-Type
   content_type          TEXT,                   -- e.g. application/pdf
-  transfer_enc          TEXT,                   -- base64 / quoted-printable / 7bit / 8bit
   size_octets           INTEGER,                -- decoded size if/when extracted; else NULL
   sha256                TEXT CHECK (sha256 IS NULL OR length(sha256) = 64), -- decoded bytes hash
   path                  TEXT,                   -- relative filesystem path if extracted later
   created_at            TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_attachments_msg           ON attachments(message_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_message_id    ON attachments(message_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_filename      ON attachments(filename);
+CREATE INDEX IF NOT EXISTS idx_attachments_sha256        ON attachments(sha256)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_attachments_msg_fn ON attachments(message_id, filename);
 
 -- tiny FTS for attachment filenames (external-content, auto-sync)

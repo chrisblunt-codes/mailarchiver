@@ -17,12 +17,15 @@ targets:
     main: src/mailarchiver.cr
 
 dependencies:
-  dotenv:
-    github: gdotdesign/cr-dotenv
-  pop3client:
-    github: chrisblunt-codes/pop3client
   db:
     github: crystal-lang/crystal-db
+  dotenv:
+    github: gdotdesign/cr-dotenv
+  crystal-mime:
+    github: chrisblunt-codes/crystal-mime
+    branch: feat/attachment-handling
+  pop3client:
+    github: chrisblunt-codes/pop3client
   sqlite3:
     github: crystal-lang/crystal-sqlite3
 

@@ -14,20 +14,45 @@ module MailArchiver
     end
 
     def self.insert_stub(
-      account_id : Int64,
-      uidl : String,
-      sha256 : String,
+      account_id  : Int64,
+      uidl        : String,
+      sha256      : String,
       size_octets : Int64,
-      rel_path : String,
-      msg_num : Int32? = nil
+      rel_path    : String,
     ) : Nil
       sql = %q{
-        INSERT INTO messages (account_id, uidl, msg_num, size_octets, sha256, path, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO messages (account_id, uidl, size_octets, sha256, path, created_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       }
-      DBA.db.exec sql, account_id, uidl, msg_num, size_octets, sha256, rel_path
+      DBA.db.exec sql, account_id, uidl, size_octets, sha256, rel_path
     end
     
+    def self.update_headers_from(message_row_id : Int64, email : MIME::Email) : Bool
+      received_at = parse_received_time(email)
+
+      sql = <<-SQL
+        UPDATE messages
+        SET received_at = ?,
+            subject     = ?,
+            from_addr   = ?,
+            to_addrs    = ?,
+            cc_addrs    = ?,
+            message_id  = ?
+        WHERE id = ?
+      SQL
+
+      res = DBA.db.exec sql,
+        iso8601_or_nil(received_at),
+        h(email, "Subject"),
+        h(email, "From"),
+        h(email, "To"),
+        h(email, "Cc"),
+        h(email, "Message-ID"),
+        message_row_id
+
+      res.rows_affected > 0
+    end
+
     def self.write_to_spool(message : String) : { String, Int64, String }
       raw   = message.to_slice
       sha   = Digest::SHA256.hexdigest(raw)
@@ -55,6 +80,41 @@ module MailArchiver
       {sha, bytes, rel_path}
     rescue ex
       raise SpoolingError.new(ex.message)
+    end
+
+    def self.update_path(message_row_id : Int64, path : String) : Nil
+      sql = "UPDATE messages SET path = ? WHERE id = ?"
+      DBA.db.exec sql, path, message_row_id
+    end
+
+    # ------------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------------
+    
+    private def self.h(email : MIME::Email, key : String) : String?
+      email.headers[key]? || ""
+    end
+
+    private def self.parse_received_time(email : MIME::Email) : Time?
+      if s = email.headers["Date"]?
+        parse_rfc2822_or_3339(s)
+      elsif r = email.headers["Received"]?
+        if idx = r.rindex(';')
+          parse_rfc2822_or_3339(r[(idx + 1)..-1].strip)
+        else
+          nil
+        end
+      else
+        nil
+      end
+    end
+
+    private def self.parse_rfc2822_or_3339(s : String) : Time?
+      return Time::Format::RFC_2822.parse(s) rescue (Time::Format::RFC_3339.parse(s) rescue nil)
+    end
+
+    private def self.iso8601_or_nil(t : Time?) : String?
+      t ? t.to_utc.to_s("%Y-%m-%dT%H:%M:%SZ") : nil
     end
   end
 end

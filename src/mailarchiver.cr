@@ -19,6 +19,7 @@ module MailArchiver
       when "init"         then handle_init
       when "add-account"  then handle_add_account
       when "fetch"        then handle_fetch
+      when "import"       then handle_import
       when nil            then usage("no command")
       else                    
         usage("unknown command: #{command}")
@@ -88,9 +89,14 @@ module MailArchiver
       puts "Fetch complete."
     end
 
+    def self.handle_import
+      Importer.new.run
+      puts "Import complete."
+    end
+
     def self.usage(msg : String)
       STDERR.puts msg
-      STDERR.puts "Usage: mailarchiver <init|add-account|fetch|search|show|attachments>"
+      STDERR.puts "Usage: mailarchiver <init|add-account|fetch|import|search|show|attachments>"
       exit 64 # EX_USAGE
     end
   end

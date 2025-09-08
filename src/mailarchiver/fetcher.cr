@@ -29,13 +29,15 @@ module MailArchiver
             puts "Message already in DB"
             spooled = true
           end
-          
-          begin
-            sha, bytes, rel = Message.write_to_spool(message)
-            Message.insert_stub(account.id, uid, sha, bytes, rel)
-            spooled = true
-          rescue ex : SpoolingError
-            puts "Error: #{ex.message}"
+
+          if !spooled
+            begin
+              sha, bytes, rel = Message.write_to_spool(message)
+              Message.insert_stub(account.id, uid, sha, bytes, rel)
+              spooled = true
+            rescue ex : SpoolingError
+              puts "Error: #{ex.message}"
+            end
           end
 
           spooled
@@ -102,7 +104,7 @@ module MailArchiver
           message = client.retr(msg_num.to_i)
           success = yield uid, message
 
-          puts "Deleting: #{msg_num}"
+          puts "Deleting: #{msg_num} UID: #{uid}"
           if success && account.delete_after_fetch
             client.dele(msg_num.to_i)
           end
