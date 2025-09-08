@@ -15,7 +15,7 @@ TBC
 - [x] Atomic spool writes (`.part` → rename)
 
 ### Next
-- [ ] Importer command  
+- [x] Importer command  
   - Parse message headers (From, To, Cc, Date, Subject, Message-Id)  
   - Enrich SQLite index with metadata  
   - Move `.eml` files from `spool/incoming` into structured archive folders (`archive/YYYY/MM/DD/`)

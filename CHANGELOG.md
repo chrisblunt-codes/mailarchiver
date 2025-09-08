@@ -8,12 +8,21 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - (nothing yet)
 
-
 ### Changed
 - (nothing yet)
 
 ### Fixed
 - (nothing yet)
+
+
+## [0.3.0] - 2025-09-08
+### Added
+- **CLI Importer**  
+  - Added `import` command
+  - Introduced `Messages.update_headers_from` helper
+  - Introduced `Attachment.insert` helper
+  - Implemented message archiving to `data/archive/yyyy-mm-dd`
+  - Implemented bad message helper
 
 
 ## [0.2.0] - 2025-09-06
@@ -43,5 +52,5 @@ Licensed under the Apache License, Version 2.0
 
 ---
 
-[Unreleased]: https://github.com/chrisblunt-codes/mailarchiver/compare/v0.2.0...HEAD  
-[0.2.0]: https://github.com/chrisblunt-codes/mailarchiver/releases/tag/v0.2.0
+[Unreleased]: https://github.com/chrisblunt-codes/mailarchiver/compare/v0.3.0...HEAD  
+[0.3.0]: https://github.com/chrisblunt-codes/mailarchiver/releases/tag/v0.3.0
