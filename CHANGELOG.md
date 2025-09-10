@@ -6,7 +6,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 ### Added
-- (nothing yet)
+- **CLI Searcher**
+  - Added `search` command
+- Added CLI `show` command
+- Added `Message.show`
 
 ### Changed
 - (nothing yet)

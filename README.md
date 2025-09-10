@@ -14,7 +14,6 @@ TBC
 - [x] CLI fetcher command with UIDL-based pipeline
 - [x] Atomic spool writes (`.part` → rename)
 
-### Next
 - [x] Importer command  
   - Parse message headers (From, To, Cc, Date, Subject, Message-Id)  
   - Enrich SQLite index with metadata  
@@ -29,9 +28,10 @@ TBC
   - Implement CLI search command using SQLite FTS5  
   - Show matches with basic metadata (date, from, subject)  
 
-- [ ] View messages
-  - Option to open the raw `.eml`
+- [x] Show messages
+  - Option to show `.eml` formatted as plain  text (or as JSON)
 
+### Next
 - [ ] Configuration & CLI improvements  
   - More options to manage accounts  
   - Verbosity/logging flags  
