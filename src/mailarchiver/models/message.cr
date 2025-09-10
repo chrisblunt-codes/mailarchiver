@@ -27,6 +27,44 @@ module MailArchiver
       DBA.db.exec sql, account_id, uidl, size_octets, sha256, rel_path
     end
     
+    def self.show(message_row_id : Int64, json : Bool) : Nil
+      email = find(message_row_id)
+
+      if email
+        if json
+          headers =  email.headers
+          if email.attachments.size > 0
+            attachments = email.attachments.map { |a| "#{a.filename} (#{a.data.size})" }
+            headers["Attachments"] = attachments.join(", ")
+          end
+
+          puts headers.to_json
+        else
+          puts "Date:    #{h(email, "Date")}"
+          puts "From:    #{h(email, "From")}"
+          puts "To:      #{h(email, "To")}"
+          puts "Subject: #{h(email, "Subject")}"
+          puts "MSG-ID:  #{h(email, "Message-ID")}"
+
+          if email.attachments.size > 0
+            puts "\nAttachments:"
+            puts email.attachments.map { |a| "#{a.filename} (#{a.data.size})" }.join("\n")
+          end
+          puts "\n\n#{email.body_text}"
+        end
+      end
+    end
+
+    def self.find(message_row_id : Int64) : MIME::Email?  
+      sql  = "SELECT path FROM messages WHERE id = ? LIMIT 1"
+      path = DBA.db.query_one?(sql, message_row_id, as: String)
+
+      if path && File.exists?(path)
+        raw = File.read(path)
+        MIME.mail_object_from_raw(raw)
+      end
+    end
+
     def self.update_headers_from(message_row_id : Int64, email : MIME::Email) : Bool
       received_at = parse_received_time(email)
 

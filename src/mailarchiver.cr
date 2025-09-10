@@ -23,6 +23,7 @@ module MailArchiver
       when "fetch"        then handle_fetch
       when "import"       then handle_import
       when "search"       then handle_search
+      when "show"         then handle_show    
       when nil            then usage("no command")
       else                    
         usage("unknown command: #{command}")
@@ -129,6 +130,26 @@ module MailArchiver
       else
         search_messages(query, limit, offset, since, until_, sort, json)
       end
+    end
+
+    def self.handle_show
+      msg_num : Int64 = 0
+      json = false
+
+      parser = OptionParser.parse(ARGV) do |p|
+        p.banner = "Usage: mailarchiver show [options] <msg_num>"
+        p.on("--json", "Output JSON") { json = true }
+        p.on("-h", "--help", "Show help") { puts p; exit 0 }
+      end
+      
+      if ARGV.empty?
+        STDERR.puts "show: invalid <msg_num>\n\n#{parser}"
+        exit 2
+      else
+        msg_num = ARGV[0].to_i64 rescue 0_i64
+      end
+
+      Message.show(msg_num, json)
     end
 
     def self.usage(msg : String)
